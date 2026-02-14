@@ -1,9 +1,12 @@
+import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { PageTitle } from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
 import { listTasks } from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
 import { TaskCreateDialog } from "./task-create-dialog";
+import { TaskDoneToggle } from "./task-done-toggle";
+import { TaskRowActions } from "./task-row-actions";
 
 /** @typedef {import("@prisma/client").Task} Task */
 
@@ -17,6 +20,12 @@ const STATUS_LABELS = {
   OPEN: "Open",
   DONE: "Done",
 };
+
+const STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "open", label: "Open" },
+  { value: "done", label: "Done" },
+];
 
 /**
  * @param {Date | null} value
@@ -59,11 +68,29 @@ function isOverdue(task, now) {
 }
 
 /**
+ * @param {unknown} value
+ */
+function normalizeStatusFilter(value) {
+  if (value === "open" || value === "done" || value === "all") {
+    return value;
+  }
+  return "all";
+}
+
+/**
  * @param {{ task: Task; now: Date }} props
  */
 function TaskItem({ task, now }) {
   const overdue = isOverdue(task, now);
   const done = task.status === "DONE";
+  const taskForActions = {
+    id: task.id,
+    title: task.title,
+    notes: task.notes,
+    dueAt: task.dueAt ? task.dueAt.toISOString() : null,
+    priority: task.priority,
+    status: task.status,
+  };
 
   return (
     <li>
@@ -88,12 +115,16 @@ function TaskItem({ task, now }) {
             {task.notes ? <p className="text-muted-foreground text-sm">{task.notes}</p> : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={task.priority === "HIGH" ? "default" : "secondary"}>
-              {PRIORITY_LABELS[task.priority]}
-            </Badge>
-            <Badge variant={done ? "secondary" : "outline"}>{STATUS_LABELS[task.status]}</Badge>
-            {overdue ? <Badge variant="destructive">Overdue</Badge> : null}
+          <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Badge variant={task.priority === "HIGH" ? "default" : "secondary"}>
+                {PRIORITY_LABELS[task.priority]}
+              </Badge>
+              <Badge variant={done ? "secondary" : "outline"}>{STATUS_LABELS[task.status]}</Badge>
+              {overdue ? <Badge variant="destructive">Overdue</Badge> : null}
+            </div>
+            <TaskDoneToggle taskId={task.id} title={task.title} initialStatus={task.status} />
+            <TaskRowActions task={taskForActions} />
           </div>
         </div>
 
@@ -116,9 +147,17 @@ function TaskItem({ task, now }) {
   );
 }
 
-export default async function TasksPage() {
+export default async function TasksPage({ searchParams }) {
   const now = new Date();
-  const { items: tasks } = await listTasks({ sort: { field: "dueAt", direction: "asc" } });
+  const params = await Promise.resolve(searchParams);
+  const statusFilter = normalizeStatusFilter(params?.status);
+  const serviceStatus =
+    statusFilter === "open" ? "OPEN" : statusFilter === "done" ? "DONE" : undefined;
+
+  const { items: tasks } = await listTasks({
+    status: serviceStatus,
+    sort: { field: "dueAt", direction: "asc" },
+  });
 
   const dueSoonTasks = tasks.filter((task) => isDueSoon(task, now));
   const otherTasks = tasks.filter((task) => !isDueSoon(task, now));
@@ -128,7 +167,33 @@ export default async function TasksPage() {
       <PageTitle
         title="Tasks"
         description="Focused list of upcoming work, with clear urgency and status signals."
-        actions={<TaskCreateDialog />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="bg-muted inline-flex items-center rounded-md p-1">
+              {STATUS_FILTER_OPTIONS.map((option) => {
+                const isActive = statusFilter === option.value;
+
+                return (
+                  <Link
+                    key={option.value}
+                    href={option.value === "all" ? "/tasks" : `/tasks?status=${option.value}`}
+                    className={cn(
+                      "rounded-sm px-2 py-1 text-xs font-medium transition-colors",
+                      "focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:outline-none",
+                      isActive
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    {option.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <TaskCreateDialog />
+          </div>
+        }
       />
 
       <section className="space-y-3" aria-labelledby="due-soon-heading">
