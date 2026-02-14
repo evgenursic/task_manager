@@ -11,6 +11,10 @@
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "lint-staged": "lint-staged",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "node prisma/seed.js",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -23,6 +27,7 @@
     ]
   },
   "dependencies": {
+    "@prisma/client": "^6.16.3",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-slot": "^1.2.4",
@@ -48,6 +53,7 @@
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "prisma": "^6.16.3",
     "tailwindcss": "^4"
   }
 }

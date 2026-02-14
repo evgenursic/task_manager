@@ -22,7 +22,25 @@ corepack pnpm install
 corepack pnpm dev
 ```
 
-3. Open `http://localhost:3000` (root redirects to `/tasks`).
+3. Copy env template:
+
+```bash
+cp .env.example .env
+```
+
+4. Create local SQLite DB and apply migration:
+
+```bash
+corepack pnpm db:migrate
+```
+
+5. (Optional) Seed sample tasks:
+
+```bash
+corepack pnpm db:seed
+```
+
+6. Open `http://localhost:3000` (root redirects to `/tasks`).
 
 ## Scripts
 
@@ -32,8 +50,17 @@ corepack pnpm dev
 - `corepack pnpm lint` - Run ESLint.
 - `corepack pnpm format` - Check Prettier formatting.
 - `corepack pnpm format:write` - Apply Prettier formatting.
+- `corepack pnpm db:migrate` - Run Prisma migrations.
+- `corepack pnpm db:generate` - Generate Prisma client.
+- `corepack pnpm db:studio` - Open Prisma Studio.
+- `corepack pnpm db:seed` - Seed sample data.
+
+## Direct Prisma CLI
+
+- `corepack pnpm prisma migrate dev`
+- `corepack pnpm prisma studio`
 
 ## Current routes
 
 - `/` -> redirects to `/tasks`
-- `/tasks` -> placeholder task page for the next milestone
+- `/tasks` -> task dashboard UI foundation with filters/sorting
