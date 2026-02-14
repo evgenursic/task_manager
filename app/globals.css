@@ -120,6 +120,18 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans leading-relaxed;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-tight text-balance;
+  }
+  p {
+    @apply text-pretty;
+  }
+  :focus-visible {
+    @apply ring-ring/50 ring-offset-background ring-2 ring-offset-2 outline-none;
   }
 }
