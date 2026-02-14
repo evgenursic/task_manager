@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { listTasks } from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
 import { TaskCreateDialog } from "./task-create-dialog";
+import { TaskRowActions } from "./task-row-actions";
 
 /** @typedef {import("@prisma/client").Task} Task */
 
@@ -64,6 +65,14 @@ function isOverdue(task, now) {
 function TaskItem({ task, now }) {
   const overdue = isOverdue(task, now);
   const done = task.status === "DONE";
+  const taskForActions = {
+    id: task.id,
+    title: task.title,
+    notes: task.notes,
+    dueAt: task.dueAt ? task.dueAt.toISOString() : null,
+    priority: task.priority,
+    status: task.status,
+  };
 
   return (
     <li>
@@ -88,12 +97,15 @@ function TaskItem({ task, now }) {
             {task.notes ? <p className="text-muted-foreground text-sm">{task.notes}</p> : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={task.priority === "HIGH" ? "default" : "secondary"}>
-              {PRIORITY_LABELS[task.priority]}
-            </Badge>
-            <Badge variant={done ? "secondary" : "outline"}>{STATUS_LABELS[task.status]}</Badge>
-            {overdue ? <Badge variant="destructive">Overdue</Badge> : null}
+          <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Badge variant={task.priority === "HIGH" ? "default" : "secondary"}>
+                {PRIORITY_LABELS[task.priority]}
+              </Badge>
+              <Badge variant={done ? "secondary" : "outline"}>{STATUS_LABELS[task.status]}</Badge>
+              {overdue ? <Badge variant="destructive">Overdue</Badge> : null}
+            </div>
+            <TaskRowActions task={taskForActions} />
           </div>
         </div>
 
