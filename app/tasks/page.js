@@ -3,6 +3,7 @@ import { PageTitle } from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
 import { listTasks } from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
+import { TaskCreateDialog } from "./task-create-dialog";
 
 /** @typedef {import("@prisma/client").Task} Task */
 
@@ -127,6 +128,7 @@ export default async function TasksPage() {
       <PageTitle
         title="Tasks"
         description="Focused list of upcoming work, with clear urgency and status signals."
+        actions={<TaskCreateDialog />}
       />
 
       <section className="space-y-3" aria-labelledby="due-soon-heading">
