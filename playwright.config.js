@@ -27,6 +27,7 @@ module.exports = defineConfig({
       ...process.env,
       DATABASE_URL: E2E_DATABASE_URL,
       E2E_BYPASS_AUTH: "1",
+      E2E_TEST_USER_EMAIL: "e2e-default@taskflow.local",
       NEXT_TELEMETRY_DISABLED: "1",
     },
   },

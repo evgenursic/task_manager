@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { getTaskReminderSummary, listTasks } from "@/lib/tasks/service";
+import {
+  deleteTask,
+  getTaskById,
+  getTaskReminderSummary,
+  listTasks,
+  updateTask,
+} from "@/lib/tasks/service";
 
 const OWNER_ID = "cowner12345678901234567890";
+const OTHER_OWNER_ID = "cowner99999999999999999999";
 
 /**
  * @param {Partial<import("@prisma/client").Task>} overrides
@@ -139,5 +146,95 @@ describe("getTaskReminderSummary", () => {
       orderBy: { dueAt: "asc" },
       select: { dueAt: true },
     });
+  });
+});
+
+describe("task ownership boundaries", () => {
+  it("getTaskById returns a task only for matching owner", async () => {
+    const findFirst = vi.fn().mockResolvedValue(makeTask());
+    const client = { task: { findFirst } };
+
+    const task = await getTaskById({ id: makeTask().id }, OWNER_ID, /** @type {any} */ (client));
+
+    expect(task.id).toBe(makeTask().id);
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { id: makeTask().id, ownerId: OWNER_ID },
+    });
+  });
+
+  it("getTaskById hides another owner's task as not found", async () => {
+    const findFirst = vi.fn().mockResolvedValue(null);
+    const client = { task: { findFirst } };
+
+    await expect(
+      getTaskById({ id: makeTask().id }, OTHER_OWNER_ID, /** @type {any} */ (client))
+    ).rejects.toMatchObject({
+      name: "TaskServiceError",
+      code: "TASK_NOT_FOUND",
+      status: 404,
+    });
+  });
+
+  it("updateTask updates only when owner matches", async () => {
+    const findFirst = vi.fn().mockResolvedValue({ id: makeTask().id });
+    const update = vi.fn().mockResolvedValue(makeTask({ title: "Updated title" }));
+    const client = { task: { findFirst, update } };
+
+    const updated = await updateTask(
+      { id: makeTask().id, title: "Updated title" },
+      OWNER_ID,
+      /** @type {any} */ (client)
+    );
+
+    expect(updated.title).toBe("Updated title");
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { id: makeTask().id, ownerId: OWNER_ID },
+      select: { id: true },
+    });
+    expect(update).toHaveBeenCalledWith({
+      where: { id: makeTask().id },
+      data: { title: "Updated title" },
+    });
+  });
+
+  it("updateTask returns TASK_NOT_FOUND for another owner's task", async () => {
+    const findFirst = vi.fn().mockResolvedValue(null);
+    const update = vi.fn();
+    const client = { task: { findFirst, update } };
+
+    await expect(
+      updateTask({ id: makeTask().id, title: "Nope" }, OTHER_OWNER_ID, /** @type {any} */ (client))
+    ).rejects.toMatchObject({
+      name: "TaskServiceError",
+      code: "TASK_NOT_FOUND",
+      status: 404,
+    });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("deleteTask deletes only when owner matches", async () => {
+    const findFirst = vi.fn().mockResolvedValue(makeTask());
+    const del = vi.fn().mockResolvedValue(makeTask());
+    const client = { task: { findFirst, delete: del } };
+
+    const deleted = await deleteTask({ id: makeTask().id }, OWNER_ID, /** @type {any} */ (client));
+
+    expect(deleted.id).toBe(makeTask().id);
+    expect(del).toHaveBeenCalledWith({ where: { id: makeTask().id } });
+  });
+
+  it("deleteTask returns TASK_NOT_FOUND for another owner's task", async () => {
+    const findFirst = vi.fn().mockResolvedValue(null);
+    const del = vi.fn();
+    const client = { task: { findFirst, delete: del } };
+
+    await expect(
+      deleteTask({ id: makeTask().id }, OTHER_OWNER_ID, /** @type {any} */ (client))
+    ).rejects.toMatchObject({
+      name: "TaskServiceError",
+      code: "TASK_NOT_FOUND",
+      status: 404,
+    });
+    expect(del).not.toHaveBeenCalled();
   });
 });
