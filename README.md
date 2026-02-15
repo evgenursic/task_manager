@@ -81,3 +81,21 @@ Manual local call example:
 curl -X POST http://localhost:3000/api/cron/daily-reminder \
   -H "X-CRON-SECRET: your-secret"
 ```
+
+## GitHub Scheduled Daily Reminder
+
+Workflow file:
+
+- `.github/workflows/daily-reminder.yml`
+
+Setup in GitHub:
+
+1. Open repository `Settings` -> `Secrets and variables` -> `Actions`.
+2. Add repository secret `APP_CRON_URL` with your deployed app base URL (example: `https://your-app.example.com`).
+3. Add repository secret `CRON_SECRET` and use the same value as your app env var `CRON_SECRET`.
+4. (Optional) Run the workflow manually from `Actions` -> `Daily Reminder` -> `Run workflow` to test.
+
+Schedule notes:
+
+- Workflow uses cron `0 6,7 * * *` (UTC) plus a local-time guard.
+- It executes only when local time in `Europe/Ljubljana` is exactly `08:00` (handles CET/CEST changes).

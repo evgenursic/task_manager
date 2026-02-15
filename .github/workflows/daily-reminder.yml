@@ -1,0 +1,49 @@
+name: Daily Reminder
+
+on:
+  schedule:
+    # 08:00 Europe/Ljubljana (handles CET/CEST via guard step below)
+    - cron: "0 6,7 * * *"
+  workflow_dispatch:
+
+jobs:
+  daily-reminder:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Guard scheduled runs to 08:00 Europe/Ljubljana
+        id: ljubljana_guard
+        if: github.event_name == 'schedule'
+        shell: bash
+        run: |
+          hour="$(TZ=Europe/Ljubljana date +%H)"
+          if [ "$hour" != "08" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping this UTC slot (local hour: $hour)."
+            exit 0
+          fi
+
+      - name: Trigger daily reminder endpoint
+        if: github.event_name == 'workflow_dispatch' || steps.ljubljana_guard.outputs.skip != 'true'
+        shell: bash
+        env:
+          APP_CRON_URL: ${{ secrets.APP_CRON_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_CRON_URL" ]; then
+            echo "Missing GitHub secret: APP_CRON_URL"
+            exit 1
+          fi
+
+          if [ -z "$CRON_SECRET" ]; then
+            echo "Missing GitHub secret: CRON_SECRET"
+            exit 1
+          fi
+
+          base_url="${APP_CRON_URL%/}"
+          endpoint="$base_url/api/cron/daily-reminder"
+
+          curl --fail-with-body --silent --show-error \
+            -X POST "$endpoint" \
+            -H "X-CRON-SECRET: $CRON_SECRET" \
+            -H "Content-Type: application/json"
