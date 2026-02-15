@@ -140,18 +140,12 @@ test.describe("tasks core flows", () => {
 
     const filters = page.getByRole("region", { name: "Task filters" });
     await filters.getByRole("tab", { name: "Overdue" }).click();
-    await expect(filters.getByRole("tab", { name: "Overdue" })).toHaveAttribute(
-      "data-state",
-      "active"
-    );
+    await expect(page).toHaveURL(/(?:\?|&)tab=overdue(?:&|$)/);
     await expect(page.getByRole("article", { name: `Task ${overdueTitle}` })).toBeVisible();
     await expect(page.getByRole("article", { name: `Task ${doneTitle}` })).toHaveCount(0);
 
     await filters.getByRole("tab", { name: "Done" }).click();
-    await expect(filters.getByRole("tab", { name: "Done" })).toHaveAttribute(
-      "data-state",
-      "active"
-    );
+    await expect(page).toHaveURL(/(?:\?|&)tab=done(?:&|$)/);
     await expect(page.getByRole("article", { name: `Task ${doneTitle}` })).toBeVisible();
     await expect(page.getByRole("article", { name: `Task ${overdueTitle}` })).toHaveCount(0);
   });
