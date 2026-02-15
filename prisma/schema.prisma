@@ -18,8 +18,20 @@ enum Status {
   DONE
 }
 
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?  @unique
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]
+}
+
 model Task {
   id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   title     String
   notes     String?
   dueAt     DateTime?
@@ -31,4 +43,7 @@ model Task {
   @@index([dueAt])
   @@index([status])
   @@index([priority])
+  @@index([ownerId])
+  @@index([ownerId, status])
+  @@index([ownerId, dueAt])
 }
