@@ -18,7 +18,7 @@ Taskflow is a production-style task manager built with Next.js App Router, Prism
 - Next.js (App Router, JavaScript + JSDoc)
 - Tailwind CSS + shadcn/ui
 - Prisma ORM
-- SQLite for local development (can be switched to Postgres/Neon for deployment)
+- PostgreSQL (Neon) for local development and production
 - Vitest (unit tests)
 - Playwright (end-to-end tests)
 - GitHub Actions (CI + scheduled daily reminder)
@@ -37,49 +37,59 @@ corepack pnpm install
 cp .env.example .env
 ```
 
-3. Apply Prisma migrations:
+3. Set `DATABASE_URL` in `.env` to a PostgreSQL database (Neon or local Postgres).
+
+4. Apply Prisma migrations:
 
 ```bash
 corepack pnpm db:migrate
 ```
 
-4. Optional: seed sample tasks:
+5. Optional: seed sample tasks:
 
 ```bash
 corepack pnpm db:seed
 ```
 
-5. Start dev server:
+6. Start dev server:
 
 ```bash
 corepack pnpm dev
 ```
 
-6. Open `http://localhost:3000/tasks`.
+7. Open `http://localhost:3000/tasks`.
 
 To test login locally, also configure Auth.js variables in `.env` (see Auth section below).
 
-## Database and migrations
+## Database and migrations (PostgreSQL)
 
-- Create/apply a migration:
+Local development (create/apply new migration):
 
 ```bash
 corepack pnpm db:migrate
 ```
 
-- Generate Prisma client:
+Production/deployment (apply committed migrations only):
+
+```bash
+corepack pnpm db:migrate:deploy
+```
+
+This repository now uses a PostgreSQL baseline migration in `prisma/migrations` for clean Neon deployments.
+
+Generate Prisma client:
 
 ```bash
 corepack pnpm db:generate
 ```
 
-- Open Prisma Studio:
+Open Prisma Studio:
 
 ```bash
 corepack pnpm db:studio
 ```
 
-For production with Postgres/Neon, set `DATABASE_URL` to your Neon connection string and run Prisma migrations in your deploy pipeline.
+If you were previously using SQLite locally, switch `.env` `DATABASE_URL` to PostgreSQL and run migrations again.
 
 ## Running tests
 
@@ -107,6 +117,8 @@ corepack pnpm test
 corepack pnpm e2e
 ```
 
+E2E tests require `E2E_DATABASE_URL` (or `DATABASE_URL`) to point to a dedicated PostgreSQL test database/branch.
+
 - CI-like full verification:
 
 ```bash
@@ -121,6 +133,7 @@ corepack pnpm build
 
 Required env vars:
 
+- `DATABASE_URL` (PostgreSQL)
 - `AUTH_SECRET`
 - `AUTH_GITHUB_ID`
 - `AUTH_GITHUB_SECRET`
@@ -134,6 +147,11 @@ Create a GitHub OAuth app:
 5. Set `Authorization callback URL` to `http://localhost:3000/api/auth/callback/github`.
 6. Create app, then copy `Client ID` and generate a `Client secret`.
 7. Put those values into `.env` as `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`.
+
+Callback URLs:
+
+- Local: `http://localhost:3000/api/auth/callback/github`
+- Production: `https://<your-domain>/api/auth/callback/github`
 
 Generate an `AUTH_SECRET`:
 
@@ -185,6 +203,8 @@ Expected response includes `ok` and reminder counts.
   - Install browser deps: `corepack pnpm exec playwright install --with-deps chromium`.
 - Prisma errors (`P1001`, connection issues):
   - Check `DATABASE_URL` and DB availability.
+- Prisma provider mismatch errors:
+  - Ensure `DATABASE_URL` uses `postgresql://...` (not `file:...`).
 - Formatting check fails:
   - Run `corepack pnpm format:write` and commit formatted files.
 
@@ -192,6 +212,8 @@ Expected response includes `ok` and reminder counts.
 
 - CI workflow: `.github/workflows/ci.yml` (lint, format check, unit, e2e, build)
 - Daily reminder workflow: `.github/workflows/daily-reminder.yml`
+- For production DB schema updates run `corepack pnpm db:migrate:deploy` against the production `DATABASE_URL`.
+- On Vercel, keep `DATABASE_URL` as Neon Postgres URL (`postgresql://...`) and redeploy after env changes.
 - Keep secrets only in deployment provider and GitHub secrets, never in repo files.
 
 ## Screenshots

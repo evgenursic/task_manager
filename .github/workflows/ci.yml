@@ -13,9 +13,25 @@ jobs:
     name: Lint, Test, Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: taskflow_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d taskflow_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     env:
       CI: true
       NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/taskflow_ci?schema=public
+      E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/taskflow_ci?schema=public
 
     steps:
       - name: Checkout

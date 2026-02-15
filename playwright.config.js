@@ -3,7 +3,13 @@
 const { defineConfig, devices } = require("@playwright/test");
 
 const PORT = Number(process.env.E2E_PORT || 3100);
-const E2E_DATABASE_URL = process.env.E2E_DATABASE_URL || "file:./e2e.db";
+const E2E_DATABASE_URL = process.env.E2E_DATABASE_URL || process.env.DATABASE_URL || "";
+
+if (!E2E_DATABASE_URL.startsWith("postgresql://")) {
+  throw new Error(
+    "Playwright E2E requires E2E_DATABASE_URL (or DATABASE_URL) to be a PostgreSQL URL."
+  );
+}
 
 module.exports = defineConfig({
   testDir: "./tests/e2e",
