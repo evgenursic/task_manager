@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { getTaskReminderSummary, listTasks } from "@/lib/tasks/service";
 
+const OWNER_ID = "cowner12345678901234567890";
+
 /**
  * @param {Partial<import("@prisma/client").Task>} overrides
  */
 function makeTask(overrides = {}) {
   return {
     id: "c123456789012345678901234",
+    ownerId: OWNER_ID,
     title: "Task title",
     notes: null,
     dueAt: null,
@@ -32,12 +35,14 @@ describe("listTasks", () => {
         dateRange: { from, to },
         sort: { field: "dueAt", direction: "asc" },
       },
+      OWNER_ID,
       /** @type {any} */ (client)
     );
 
     expect(findMany).toHaveBeenCalledTimes(1);
     expect(findMany).toHaveBeenCalledWith({
       where: {
+        ownerId: OWNER_ID,
         status: "OPEN",
         OR: [{ title: { contains: "roadmap" } }, { notes: { contains: "roadmap" } }],
         dueAt: { gte: from, lte: to },
@@ -57,11 +62,12 @@ describe("listTasks", () => {
 
     const result = await listTasks(
       { sort: { field: "priority", direction: "desc" } },
+      OWNER_ID,
       /** @type {any} */ (client)
     );
 
     expect(findMany).toHaveBeenCalledWith({
-      where: {},
+      where: { ownerId: OWNER_ID },
       orderBy: { createdAt: "desc" },
     });
     expect(result.items.map((task) => task.priority)).toEqual(["HIGH", "MEDIUM", "LOW"]);
@@ -73,12 +79,23 @@ describe("listTasks", () => {
         {
           sort: { field: "not-valid-field", direction: "asc" },
         },
+        OWNER_ID,
         /** @type {any} */ ({ task: { findMany: vi.fn() } })
       )
     ).rejects.toMatchObject({
       name: "TaskServiceError",
       code: "VALIDATION_ERROR",
       status: 400,
+    });
+  });
+
+  it("requires owner id for scoped queries", async () => {
+    await expect(
+      listTasks({}, "", /** @type {any} */ ({ task: { findMany: vi.fn() } }))
+    ).rejects.toMatchObject({
+      name: "TaskServiceError",
+      code: "AUTH_REQUIRED",
+      status: 401,
     });
   });
 });
@@ -92,7 +109,7 @@ describe("getTaskReminderSummary", () => {
     });
     const client = { task: { count, findFirst } };
 
-    const summary = await getTaskReminderSummary({ now }, /** @type {any} */ (client));
+    const summary = await getTaskReminderSummary({ now }, OWNER_ID, /** @type {any} */ (client));
 
     expect(summary).toEqual({
       overdueOpenCount: 2,
@@ -101,6 +118,7 @@ describe("getTaskReminderSummary", () => {
     });
     expect(count).toHaveBeenNthCalledWith(1, {
       where: {
+        ownerId: OWNER_ID,
         status: "OPEN",
         dueAt: { lt: now },
       },
@@ -109,10 +127,12 @@ describe("getTaskReminderSummary", () => {
 
     const secondCountCall = count.mock.calls[1][0];
     expect(secondCountCall.where.status).toBe("OPEN");
+    expect(secondCountCall.where.ownerId).toBe(OWNER_ID);
     expect(secondCountCall.where.dueAt.gte).toBeInstanceOf(Date);
     expect(secondCountCall.where.dueAt.lte).toBeInstanceOf(Date);
     expect(findFirst).toHaveBeenCalledWith({
       where: {
+        ownerId: OWNER_ID,
         status: "OPEN",
         dueAt: { gte: now },
       },
