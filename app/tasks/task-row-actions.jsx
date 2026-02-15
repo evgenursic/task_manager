@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal } from "lucide-react";
+import { Loader2, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { deleteTaskAction } from "@/app/tasks/actions";
 import { TaskEditDialog } from "@/app/tasks/task-edit-dialog";
@@ -105,13 +105,16 @@ export function TaskRowActions({ task }) {
             aria-label={`Open actions for ${task.title}`}
             className="size-8"
           >
-            <MoreHorizontal className="h-4 w-4" />
+            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setEditOpen(true)}>Edit</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setEditOpen(true)} aria-label="Edit">
+            Edit
+          </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => setDeleteOpen(true)}
+            aria-label="Delete"
             className="text-red-600 dark:text-red-300"
           >
             Delete
@@ -154,6 +157,7 @@ export function TaskRowActions({ task }) {
             <Button
               type="button"
               variant="outline"
+              aria-label="Cancel deleting task"
               onClick={() => handleDeleteOpenChange(false)}
               disabled={isDeleting}
             >
@@ -162,10 +166,18 @@ export function TaskRowActions({ task }) {
             <Button
               type="button"
               variant="destructive"
+              aria-label="Delete task"
               onClick={handleDeleteConfirm}
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete task"}
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete task"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

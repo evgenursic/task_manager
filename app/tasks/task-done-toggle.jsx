@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { toggleTaskDoneAction } from "@/app/tasks/actions";
 import { cn } from "@/lib/utils";
@@ -51,6 +51,7 @@ export function TaskDoneToggle({ taskId, title, initialStatus }) {
       onClick={handleToggle}
       disabled={isToggling}
       aria-pressed={isDone}
+      aria-busy={isToggling}
       aria-label={isDone ? `Mark ${title} as open` : `Mark ${title} as done`}
       className={cn(
         "group border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-8 items-center gap-2 rounded-md border px-2 text-xs font-medium transition-all",
@@ -67,9 +68,13 @@ export function TaskDoneToggle({ taskId, title, initialStatus }) {
             : "border-muted-foreground/40 scale-90 text-transparent group-hover:scale-100"
         )}
       >
-        <Check className="h-3 w-3" />
+        {isToggling ? (
+          <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+        ) : (
+          <Check className="h-3 w-3" aria-hidden="true" />
+        )}
       </span>
-      <span>{isDone ? "Done" : "Mark done"}</span>
+      <span>{isToggling ? "Updating..." : isDone ? "Done" : "Mark done"}</span>
     </button>
   );
 }

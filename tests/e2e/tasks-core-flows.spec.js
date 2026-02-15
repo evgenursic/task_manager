@@ -119,13 +119,20 @@ test.describe("tasks core flows", () => {
       doneArticle.getByRole("button", { name: `Mark ${doneTitle} as open` })
     ).toBeVisible();
 
-    await page.getByRole("tab", { name: "Overdue" }).click();
-    await expect(page).toHaveURL(/tab=overdue/);
+    const filters = page.getByRole("region", { name: "Task filters" });
+    await filters.getByRole("tab", { name: "Overdue" }).click();
+    await expect(filters.getByRole("tab", { name: "Overdue" })).toHaveAttribute(
+      "data-state",
+      "active"
+    );
     await expect(page.getByRole("article", { name: `Task ${overdueTitle}` })).toBeVisible();
     await expect(page.getByRole("article", { name: `Task ${doneTitle}` })).toHaveCount(0);
 
-    await page.getByRole("tab", { name: "Done" }).click();
-    await expect(page).toHaveURL(/tab=done/);
+    await filters.getByRole("tab", { name: "Done" }).click();
+    await expect(filters.getByRole("tab", { name: "Done" })).toHaveAttribute(
+      "data-state",
+      "active"
+    );
     await expect(page.getByRole("article", { name: `Task ${doneTitle}` })).toBeVisible();
     await expect(page.getByRole("article", { name: `Task ${overdueTitle}` })).toHaveCount(0);
   });
