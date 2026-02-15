@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { PageTitle } from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +5,7 @@ import { listTasks } from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
 import { TaskCreateDialog } from "./task-create-dialog";
 import { TaskDoneToggle } from "./task-done-toggle";
+import { TaskFilterBar } from "./task-filter-bar";
 import { TaskRowActions } from "./task-row-actions";
 
 /** @typedef {import("@prisma/client").Task} Task */
@@ -21,11 +21,8 @@ const STATUS_LABELS = {
   DONE: "Done",
 };
 
-const STATUS_FILTER_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "open", label: "Open" },
-  { value: "done", label: "Done" },
-];
+const TAB_VALUES = ["all", "today", "week", "overdue", "done"];
+const SORT_VALUES = ["due-asc", "due-desc", "priority", "created"];
 
 /**
  * @param {Date | null} value
@@ -68,13 +65,122 @@ function isOverdue(task, now) {
 }
 
 /**
+ * @param {Date} value
+ */
+function startOfDay(value) {
+  const next = new Date(value);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+/**
+ * @param {Date} value
+ */
+function endOfDay(value) {
+  const next = new Date(value);
+  next.setHours(23, 59, 59, 999);
+  return next;
+}
+
+/**
+ * @param {Date} value
+ */
+function endOfWeek(value) {
+  const next = endOfDay(value);
+  const day = next.getDay();
+  next.setDate(next.getDate() + (6 - day));
+  return next;
+}
+
+/**
  * @param {unknown} value
  */
-function normalizeStatusFilter(value) {
-  if (value === "open" || value === "done" || value === "all") {
+function getParamValue(value) {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  if (typeof value === "string") {
     return value;
   }
-  return "all";
+  return "";
+}
+
+/**
+ * @param {string} value
+ */
+function normalizeTab(value) {
+  return TAB_VALUES.includes(value) ? value : "all";
+}
+
+/**
+ * @param {string} value
+ */
+function normalizeSort(value) {
+  return SORT_VALUES.includes(value) ? value : "due-asc";
+}
+
+/**
+ * @param {string} value
+ */
+function normalizeQuery(value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  return trimmed.slice(0, 200);
+}
+
+/**
+ * @param {"due-asc" | "due-desc" | "priority" | "created"} sort
+ */
+function mapSort(sort) {
+  if (sort === "due-desc") {
+    return { field: "dueAt", direction: "desc" };
+  }
+  if (sort === "priority") {
+    return { field: "priority", direction: "desc" };
+  }
+  if (sort === "created") {
+    return { field: "createdAt", direction: "desc" };
+  }
+  return { field: "dueAt", direction: "asc" };
+}
+
+/**
+ * @param {"all" | "today" | "week" | "overdue" | "done"} tab
+ * @param {Date} now
+ */
+function buildServiceFilters(tab, now) {
+  if (tab === "done") {
+    return { status: "DONE" };
+  }
+  if (tab === "today") {
+    return {
+      status: "OPEN",
+      dateRange: {
+        from: startOfDay(now),
+        to: endOfDay(now),
+      },
+    };
+  }
+  if (tab === "week") {
+    return {
+      status: "OPEN",
+      dateRange: {
+        from: startOfDay(now),
+        to: endOfWeek(now),
+      },
+    };
+  }
+  if (tab === "overdue") {
+    return {
+      status: "OPEN",
+      dateRange: {
+        to: new Date(now.getTime() - 1),
+      },
+    };
+  }
+  return {};
 }
 
 /**
@@ -150,79 +256,63 @@ function TaskItem({ task, now }) {
 export default async function TasksPage({ searchParams }) {
   const now = new Date();
   const params = await Promise.resolve(searchParams);
-  const statusFilter = normalizeStatusFilter(params?.status);
-  const serviceStatus =
-    statusFilter === "open" ? "OPEN" : statusFilter === "done" ? "DONE" : undefined;
+  const tab = normalizeTab(getParamValue(params?.tab));
+  const sort = normalizeSort(getParamValue(params?.sort));
+  const query = normalizeQuery(getParamValue(params?.query));
+  const serviceFilters = buildServiceFilters(tab, now);
+  const showDueSoonSection = tab === "all" || tab === "today" || tab === "week";
 
   const { items: tasks } = await listTasks({
-    status: serviceStatus,
-    sort: { field: "dueAt", direction: "asc" },
+    ...serviceFilters,
+    query: query || undefined,
+    sort: mapSort(sort),
   });
 
   const dueSoonTasks = tasks.filter((task) => isDueSoon(task, now));
-  const otherTasks = tasks.filter((task) => !isDueSoon(task, now));
+  const listTasksItems = showDueSoonSection ? tasks.filter((task) => !isDueSoon(task, now)) : tasks;
+  const allTasksHeading = tab === "done" ? "Done tasks" : "All tasks";
+  const allTasksEmptyDescription =
+    tab === "done" ? "No completed tasks match this filter." : "Everything else is clear for now.";
 
   return (
     <section className="space-y-8">
       <PageTitle
         title="Tasks"
         description="Focused list of upcoming work, with clear urgency and status signals."
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="bg-muted inline-flex items-center rounded-md p-1">
-              {STATUS_FILTER_OPTIONS.map((option) => {
-                const isActive = statusFilter === option.value;
-
-                return (
-                  <Link
-                    key={option.value}
-                    href={option.value === "all" ? "/tasks" : `/tasks?status=${option.value}`}
-                    className={cn(
-                      "rounded-sm px-2 py-1 text-xs font-medium transition-colors",
-                      "focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:outline-none",
-                      isActive
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    {option.label}
-                  </Link>
-                );
-              })}
-            </div>
-            <TaskCreateDialog />
-          </div>
-        }
+        actions={<TaskCreateDialog />}
       />
 
-      <section className="space-y-3" aria-labelledby="due-soon-heading">
-        <h2 id="due-soon-heading" className="text-lg font-semibold">
-          Due soon (next 24h)
-        </h2>
-        {dueSoonTasks.length === 0 ? (
-          <EmptyState
-            title="No tasks due soon"
-            description="No open tasks are due within the next 24 hours."
-          />
-        ) : (
-          <ul className="space-y-3" aria-label="Due soon tasks">
-            {dueSoonTasks.map((task) => (
-              <TaskItem key={`due-soon-${task.id}`} task={task} now={now} />
-            ))}
-          </ul>
-        )}
-      </section>
+      <TaskFilterBar tab={tab} query={query} sort={sort} />
+
+      {showDueSoonSection ? (
+        <section className="space-y-3" aria-labelledby="due-soon-heading">
+          <h2 id="due-soon-heading" className="text-lg font-semibold">
+            Due soon (next 24h)
+          </h2>
+          {dueSoonTasks.length === 0 ? (
+            <EmptyState
+              title="No tasks due soon"
+              description="No open tasks are due within the next 24 hours."
+            />
+          ) : (
+            <ul className="space-y-3" aria-label="Due soon tasks">
+              {dueSoonTasks.map((task) => (
+                <TaskItem key={`due-soon-${task.id}`} task={task} now={now} />
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       <section className="space-y-3" aria-labelledby="all-tasks-heading">
         <h2 id="all-tasks-heading" className="text-lg font-semibold">
-          All tasks
+          {allTasksHeading}
         </h2>
-        {otherTasks.length === 0 ? (
-          <EmptyState title="No other tasks" description="Everything else is clear for now." />
+        {listTasksItems.length === 0 ? (
+          <EmptyState title="No matching tasks" description={allTasksEmptyDescription} />
         ) : (
           <ul className="space-y-3" aria-label="All tasks">
-            {otherTasks.map((task) => (
+            {listTasksItems.map((task) => (
               <TaskItem key={task.id} task={task} now={now} />
             ))}
           </ul>
