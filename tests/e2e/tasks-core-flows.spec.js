@@ -45,6 +45,25 @@ async function openTaskActions(page, title) {
 }
 
 test.describe("tasks core flows", () => {
+  test("keyboard shortcuts focus search and open/close new task dialog", async ({ page }) => {
+    await page.goto("/tasks");
+
+    await page.keyboard.press("/");
+    const searchInput = page.getByLabel("Search tasks");
+    await expect(searchInput).toBeFocused();
+
+    // Should not open while typing in an input.
+    await page.keyboard.press("n");
+    await expect(page.getByRole("dialog", { name: "Create task" })).toHaveCount(0);
+
+    await page.getByRole("heading", { name: "Tasks", level: 1 }).click();
+    await page.keyboard.press("n");
+    await expect(page.getByRole("dialog", { name: "Create task" })).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "Create task" })).toBeHidden();
+  });
+
   test("create task appears in list", async ({ page }) => {
     const title = `E2E Create ${Date.now()}`;
 

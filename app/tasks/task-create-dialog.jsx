@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus } from "lucide-react";
@@ -29,6 +29,22 @@ const DEFAULT_VALUES = {
 
 const FIELD_NAMES = new Set(["title", "notes", "dueAt", "priority"]);
 
+/**
+ * @param {EventTarget | null} target
+ */
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  const tagName = target.tagName.toLowerCase();
+  return tagName === "input" || tagName === "textarea" || tagName === "select";
+}
+
 export function TaskCreateDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -47,6 +63,31 @@ export function TaskCreateDialog() {
     setError,
     formState: { errors, isSubmitting },
   } = form;
+
+  useEffect(() => {
+    /**
+     * @param {KeyboardEvent} event
+     */
+    function onKeyDown(event) {
+      if (event.key !== "n") {
+        return;
+      }
+
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+        return;
+      }
+
+      if (open || isEditableTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      setOpen(true);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError("");
@@ -100,6 +141,12 @@ export function TaskCreateDialog() {
         <Button size="sm" className="gap-2" aria-label="New task">
           <Plus className="h-4 w-4" aria-hidden="true" />
           New task
+          <span
+            className="bg-muted text-muted-foreground rounded border px-1 py-0 text-[10px] leading-4"
+            aria-hidden="true"
+          >
+            N
+          </span>
         </Button>
       </DialogTrigger>
 
