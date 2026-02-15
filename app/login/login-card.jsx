@@ -5,9 +5,9 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
 /**
- * @param {{ authConfigured: boolean }} props
+ * @param {{ authConfigured: boolean; nextPath: string }} props
  */
-export function LoginCard({ authConfigured }) {
+export function LoginCard({ authConfigured, nextPath }) {
   const [isPending, setIsPending] = useState(false);
 
   const handleGitHubSignIn = async () => {
@@ -16,7 +16,7 @@ export function LoginCard({ authConfigured }) {
     }
 
     setIsPending(true);
-    await signIn("github", { redirectTo: "/tasks" });
+    await signIn("github", { redirectTo: nextPath || "/tasks" });
     setIsPending(false);
   };
 

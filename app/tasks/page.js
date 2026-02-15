@@ -1,7 +1,6 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
 import { PageTitle } from "@/components/page-title";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentOwner } from "@/lib/auth/current-user";
 import { getTaskReminderSummary, listTasks } from "@/lib/tasks/service";
@@ -107,6 +106,34 @@ function getParamValue(value) {
     return value;
   }
   return "";
+}
+
+/**
+ * @param {Record<string, string | string[] | undefined> | undefined} params
+ */
+function buildSearchParams(params) {
+  const next = new URLSearchParams();
+
+  if (!params) {
+    return next;
+  }
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (typeof item === "string") {
+          next.append(key, item);
+        }
+      });
+      return;
+    }
+
+    if (typeof value === "string") {
+      next.append(key, value);
+    }
+  });
+
+  return next;
 }
 
 /**
@@ -316,30 +343,16 @@ function TaskItem({ task, now }) {
 }
 
 export default async function TasksPage({ searchParams }) {
+  const params = await Promise.resolve(searchParams);
   const owner = await getCurrentOwner();
 
   if (!owner) {
-    return (
-      <section className="space-y-8">
-        <PageTitle
-          title="Tasks"
-          description="Sign in to view and manage your personal task list."
-          actions={
-            <Button asChild size="sm">
-              <Link href="/login">Sign in</Link>
-            </Button>
-          }
-        />
-        <EmptyState
-          title="You're not signed in"
-          description="Sign in with GitHub to load your tasks, reminders, and filters."
-        />
-      </section>
-    );
+    const nextParams = buildSearchParams(params);
+    const nextPath = nextParams.size > 0 ? `/tasks?${nextParams.toString()}` : "/tasks";
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   }
 
   const now = new Date();
-  const params = await Promise.resolve(searchParams);
   const tab = normalizeTab(getParamValue(params?.tab));
   const sort = normalizeSort(getParamValue(params?.sort));
   const query = normalizeQuery(getParamValue(params?.query));
