@@ -1,7 +1,9 @@
 // @ts-check
 
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
+import { db } from "@/lib/db";
 
 const githubClientId = process.env.AUTH_GITHUB_ID ?? "";
 const githubClientSecret = process.env.AUTH_GITHUB_SECRET ?? "";
@@ -12,6 +14,7 @@ const authSecret =
 export const isGithubAuthConfigured = Boolean(githubClientId && githubClientSecret);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(db),
   providers: [
     GitHub({
       clientId: githubClientId,
@@ -19,25 +22,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: "database",
   },
   pages: {
     signIn: "/login",
   },
   callbacks: {
-    async jwt({ token, profile, user }) {
-      if (user?.id && !token.sub) {
-        token.sub = String(user.id);
-      } else if (profile?.id && !token.sub) {
-        token.sub = String(profile.id);
-      }
-
-      return token;
-    },
-    async session({ session, token }) {
+    async session({ session, user }) {
       const sessionWithId = /** @type {any} */ (session);
-      if (sessionWithId.user && token.sub) {
-        sessionWithId.user.id = String(token.sub);
+      if (sessionWithId.user && user?.id) {
+        sessionWithId.user.id = String(user.id);
       }
       return sessionWithId;
     },
