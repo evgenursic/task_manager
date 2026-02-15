@@ -1,11 +1,12 @@
 import { EmptyState } from "@/components/empty-state";
 import { PageTitle } from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
-import { listTasks } from "@/lib/tasks/service";
+import { getTaskReminderSummary, listTasks } from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
 import { TaskCreateDialog } from "./task-create-dialog";
 import { TaskDoneToggle } from "./task-done-toggle";
 import { TaskFilterBar } from "./task-filter-bar";
+import { TaskRemindersPanel } from "./task-reminders-panel";
 import { TaskRowActions } from "./task-row-actions";
 
 /** @typedef {import("@prisma/client").Task} Task */
@@ -147,6 +148,26 @@ function mapSort(sort) {
 }
 
 /**
+ * @param {{ tab: string; query: string; sort: string }} params
+ */
+function buildTasksHref(params) {
+  const next = new URLSearchParams();
+
+  if (params.tab && params.tab !== "all") {
+    next.set("tab", params.tab);
+  }
+  if (params.query) {
+    next.set("query", params.query);
+  }
+  if (params.sort && params.sort !== "due-asc") {
+    next.set("sort", params.sort);
+  }
+
+  const search = next.toString();
+  return search ? `/tasks?${search}` : "/tasks";
+}
+
+/**
  * @param {"all" | "today" | "week" | "overdue" | "done"} tab
  * @param {Date} now
  */
@@ -262,17 +283,25 @@ export default async function TasksPage({ searchParams }) {
   const serviceFilters = buildServiceFilters(tab, now);
   const showDueSoonSection = tab === "all" || tab === "today" || tab === "week";
 
-  const { items: tasks } = await listTasks({
-    ...serviceFilters,
-    query: query || undefined,
-    sort: mapSort(sort),
-  });
+  const [{ items: tasks }, reminderSummary] = await Promise.all([
+    listTasks({
+      ...serviceFilters,
+      query: query || undefined,
+      sort: mapSort(sort),
+    }),
+    getTaskReminderSummary({ now }),
+  ]);
 
   const dueSoonTasks = tasks.filter((task) => isDueSoon(task, now));
   const listTasksItems = showDueSoonSection ? tasks.filter((task) => !isDueSoon(task, now)) : tasks;
   const allTasksHeading = tab === "done" ? "Done tasks" : "All tasks";
   const allTasksEmptyDescription =
     tab === "done" ? "No completed tasks match this filter." : "Everything else is clear for now.";
+  const overdueTabHref = buildTasksHref({
+    tab: "overdue",
+    query,
+    sort,
+  });
 
   return (
     <section className="space-y-8">
@@ -283,6 +312,7 @@ export default async function TasksPage({ searchParams }) {
       />
 
       <TaskFilterBar tab={tab} query={query} sort={sort} />
+      <TaskRemindersPanel summary={reminderSummary} overdueHref={overdueTabHref} />
 
       {showDueSoonSection ? (
         <section className="space-y-3" aria-labelledby="due-soon-heading">
