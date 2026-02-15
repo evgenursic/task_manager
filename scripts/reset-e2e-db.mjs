@@ -1,36 +1,26 @@
 import { execSync } from "node:child_process";
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import path from "node:path";
 
-const E2E_DATABASE_URL = process.env.E2E_DATABASE_URL || "file:./e2e.db";
+const E2E_DATABASE_URL = process.env.E2E_DATABASE_URL || process.env.DATABASE_URL || "";
 
-if (!E2E_DATABASE_URL.startsWith("file:")) {
-  throw new Error("E2E_DATABASE_URL must use sqlite file: URL, e.g. file:./e2e.db");
+if (!E2E_DATABASE_URL.startsWith("postgresql://")) {
+  throw new Error(
+    "E2E_DATABASE_URL must be a PostgreSQL URL (postgresql://...) that points to a dedicated test database."
+  );
 }
 
-const dbRelativePath = E2E_DATABASE_URL.slice("file:".length);
-const dbAbsolutePath = dbRelativePath.startsWith("./")
-  ? path.resolve(process.cwd(), "prisma", dbRelativePath.slice(2))
-  : path.resolve(process.cwd(), dbRelativePath);
-
-await mkdir(path.dirname(dbAbsolutePath), { recursive: true });
-
-for (const suffix of ["", "-journal", "-wal", "-shm"]) {
-  await rm(`${dbAbsolutePath}${suffix}`, { force: true });
+if (process.env.NODE_ENV === "production") {
+  throw new Error("Refusing to reset E2E database in production mode.");
 }
-
-// Prisma can fail to create a brand-new SQLite file in some Windows setups.
-await writeFile(dbAbsolutePath, "");
 
 const env = {
   ...process.env,
   DATABASE_URL: E2E_DATABASE_URL,
 };
 
-execSync("corepack pnpm prisma db push --skip-generate", {
+execSync("corepack pnpm prisma migrate reset --force --skip-seed --skip-generate", {
   cwd: process.cwd(),
   stdio: "inherit",
   env,
 });
 
-console.log(`[e2e] reset database at ${dbRelativePath}`);
+console.log("[e2e] reset PostgreSQL test database");
