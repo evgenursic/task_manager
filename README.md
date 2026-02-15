@@ -57,6 +57,8 @@ corepack pnpm dev
 
 6. Open `http://localhost:3000/tasks`.
 
+To test login locally, also configure Auth.js variables in `.env` (see Auth section below).
+
 ## Database and migrations
 
 - Create/apply a migration:
@@ -114,6 +116,32 @@ corepack pnpm test:ci
 corepack pnpm e2e:ci
 corepack pnpm build
 ```
+
+## Auth setup (Auth.js + GitHub OAuth)
+
+Required env vars:
+
+- `AUTH_SECRET`
+- `AUTH_GITHUB_ID`
+- `AUTH_GITHUB_SECRET`
+
+Create a GitHub OAuth app:
+
+1. Open GitHub `Settings` -> `Developer settings` -> `OAuth Apps`.
+2. Click `New OAuth App`.
+3. Set `Application name` (for example `Taskflow Local`).
+4. Set `Homepage URL` to `http://localhost:3000`.
+5. Set `Authorization callback URL` to `http://localhost:3000/api/auth/callback/github`.
+6. Create app, then copy `Client ID` and generate a `Client secret`.
+7. Put those values into `.env` as `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`.
+
+Generate an `AUTH_SECRET`:
+
+```bash
+openssl rand -base64 32
+```
+
+After setup, open `http://localhost:3000/login` and sign in with GitHub.
 
 ## Cron reminders setup (Resend + GitHub Actions)
 
