@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { PageTitle } from "@/components/page-title";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getCurrentOwner } from "@/lib/auth/current-user";
 import { getTaskReminderSummary, listTasks } from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
 import { TaskCreateDialog } from "./task-create-dialog";
@@ -313,6 +316,28 @@ function TaskItem({ task, now }) {
 }
 
 export default async function TasksPage({ searchParams }) {
+  const owner = await getCurrentOwner();
+
+  if (!owner) {
+    return (
+      <section className="space-y-8">
+        <PageTitle
+          title="Tasks"
+          description="Sign in to view and manage your personal task list."
+          actions={
+            <Button asChild size="sm">
+              <Link href="/login">Sign in</Link>
+            </Button>
+          }
+        />
+        <EmptyState
+          title="You're not signed in"
+          description="Sign in with GitHub to load your tasks, reminders, and filters."
+        />
+      </section>
+    );
+  }
+
   const now = new Date();
   const params = await Promise.resolve(searchParams);
   const tab = normalizeTab(getParamValue(params?.tab));
@@ -322,12 +347,15 @@ export default async function TasksPage({ searchParams }) {
   const showDueSoonSection = tab === "all" || tab === "today" || tab === "week";
 
   const [{ items: tasks }, reminderSummary] = await Promise.all([
-    listTasks({
-      ...serviceFilters,
-      query: query || undefined,
-      sort: mapSort(sort),
-    }),
-    getTaskReminderSummary({ now }),
+    listTasks(
+      {
+        ...serviceFilters,
+        query: query || undefined,
+        sort: mapSort(sort),
+      },
+      owner.id
+    ),
+    getTaskReminderSummary({ now }, owner.id),
   ]);
 
   const dueSoonTasks = tasks.filter((task) => isDueSoon(task, now));

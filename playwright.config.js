@@ -26,6 +26,7 @@ module.exports = defineConfig({
     env: {
       ...process.env,
       DATABASE_URL: E2E_DATABASE_URL,
+      E2E_BYPASS_AUTH: "1",
       NEXT_TELEMETRY_DISABLED: "1",
     },
   },

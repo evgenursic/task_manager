@@ -24,6 +24,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     signIn: "/login",
   },
+  callbacks: {
+    async jwt({ token, profile, user }) {
+      if (user?.id && !token.sub) {
+        token.sub = String(user.id);
+      } else if (profile?.id && !token.sub) {
+        token.sub = String(profile.id);
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      const sessionWithId = /** @type {any} */ (session);
+      if (sessionWithId.user && token.sub) {
+        sessionWithId.user.id = String(token.sub);
+      }
+      return sessionWithId;
+    },
+  },
   trustHost: true,
   secret: authSecret,
 });

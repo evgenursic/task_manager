@@ -9,6 +9,7 @@ import {
   getTaskById,
   updateTask,
 } from "@/lib/tasks/service";
+import { getCurrentOwner } from "@/lib/auth/current-user";
 import { TaskCreateSchema, TaskIdSchema, TaskUpdateSchema } from "@/lib/tasks/schemas";
 
 /**
@@ -92,6 +93,20 @@ function toActionError(error) {
   };
 }
 
+async function requireActionOwnerId() {
+  const owner = await getCurrentOwner();
+  if (owner?.id) {
+    return owner.id;
+  }
+
+  throw new TaskServiceError({
+    code: "AUTH_REQUIRED",
+    status: 401,
+    message: "Please sign in to manage tasks.",
+    issues: [{ id: "auth-required-1", message: "You need to be signed in." }],
+  });
+}
+
 /**
  * @param {unknown} inputOrPrevState
  * @param {unknown} [maybeInput]
@@ -99,9 +114,10 @@ function toActionError(error) {
  */
 export async function createTaskAction(inputOrPrevState, maybeInput) {
   try {
+    const ownerId = await requireActionOwnerId();
     const input = getActionInput(inputOrPrevState, maybeInput);
     const parsed = TaskCreateSchema.parse(input);
-    const task = await createTask(parsed);
+    const task = await createTask(parsed, ownerId);
     revalidatePath("/tasks");
 
     return { ok: true, data: task };
@@ -118,9 +134,10 @@ export async function createTaskAction(inputOrPrevState, maybeInput) {
  */
 export async function updateTaskAction(inputOrPrevState, maybeInput) {
   try {
+    const ownerId = await requireActionOwnerId();
     const input = getActionInput(inputOrPrevState, maybeInput);
     const parsed = TaskUpdateSchema.parse(input);
-    const task = await updateTask(parsed);
+    const task = await updateTask(parsed, ownerId);
     revalidatePath("/tasks");
 
     return { ok: true, data: task };
@@ -137,12 +154,13 @@ export async function updateTaskAction(inputOrPrevState, maybeInput) {
  */
 export async function toggleTaskDoneAction(inputOrPrevState, maybeInput) {
   try {
+    const ownerId = await requireActionOwnerId();
     const input = getActionInput(inputOrPrevState, maybeInput);
     const { id } = TaskIdSchema.parse(input);
 
-    const existingTask = await getTaskById({ id });
+    const existingTask = await getTaskById({ id }, ownerId);
     const nextStatus = existingTask.status === "DONE" ? "OPEN" : "DONE";
-    const task = await updateTask({ id, status: nextStatus });
+    const task = await updateTask({ id, status: nextStatus }, ownerId);
 
     revalidatePath("/tasks");
 
@@ -163,9 +181,10 @@ export async function toggleTaskDoneAction(inputOrPrevState, maybeInput) {
  */
 export async function deleteTaskAction(inputOrPrevState, maybeInput) {
   try {
+    const ownerId = await requireActionOwnerId();
     const input = getActionInput(inputOrPrevState, maybeInput);
     const { id } = TaskIdSchema.parse(input);
-    const task = await deleteTask({ id });
+    const task = await deleteTask({ id }, ownerId);
 
     revalidatePath("/tasks");
 
