@@ -64,3 +64,20 @@ corepack pnpm db:seed
 
 - `/` -> redirects to `/tasks`
 - `/tasks` -> task dashboard UI foundation with filters/sorting
+- `/api/cron/daily-reminder` -> secured cron endpoint for daily reminder email
+
+## Daily Reminder Endpoint
+
+Required environment variables:
+
+- `CRON_SECRET`
+- `REMINDER_EMAIL`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL` (optional; defaults to `Taskflow <onboarding@resend.dev>`)
+
+Manual local call example:
+
+```bash
+curl -X POST http://localhost:3000/api/cron/daily-reminder \
+  -H "X-CRON-SECRET: your-secret"
+```
