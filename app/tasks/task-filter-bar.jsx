@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,22 @@ const SORT_OPTIONS = [
 ];
 
 /**
+ * @param {EventTarget | null} target
+ */
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  const tagName = target.tagName.toLowerCase();
+  return tagName === "input" || tagName === "textarea" || tagName === "select";
+}
+
+/**
  * @param {{
  *   tab: "all" | "today" | "week" | "overdue" | "done";
  *   query: string;
@@ -34,10 +50,37 @@ export function TaskFilterBar({ tab, query, sort }) {
   const pathname = usePathname();
   const urlParams = useSearchParams();
   const [queryInput, setQueryInput] = useState(query);
+  const queryInputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
 
   useEffect(() => {
     setQueryInput(query);
   }, [query]);
+
+  useEffect(() => {
+    /**
+     * @param {KeyboardEvent} event
+     */
+    function onKeyDown(event) {
+      if (event.key !== "/") {
+        return;
+      }
+
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+        return;
+      }
+
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      queryInputRef.current?.focus();
+      queryInputRef.current?.select();
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   /**
    * @param {Record<string, string | null | undefined>} updates
@@ -124,6 +167,7 @@ export function TaskFilterBar({ tab, query, sort }) {
           Search tasks
         </label>
         <Input
+          ref={queryInputRef}
           id="task-query"
           aria-label="Search tasks"
           value={queryInput}
@@ -148,6 +192,11 @@ export function TaskFilterBar({ tab, query, sort }) {
           </Button>
         </div>
       </form>
+
+      <p className="text-muted-foreground text-xs" aria-label="Keyboard shortcuts hint">
+        Press <kbd className="rounded border px-1 font-mono text-[11px]">/</kbd> to search and{" "}
+        <kbd className="rounded border px-1 font-mono text-[11px]">N</kbd> to add a task.
+      </p>
     </section>
   );
 }
