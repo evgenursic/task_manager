@@ -96,7 +96,7 @@ function buildEmailContent({ now, dueTodayTasks, overdueTasks }) {
 function getConfig() {
   const config = {
     cronSecret: process.env.CRON_SECRET,
-    reminderEmail: process.env.REMINDER_EMAIL ?? process.env.REMINDER_TO_EMAIL,
+    reminderEmail: process.env.REMINDER_EMAIL,
     resendApiKey: process.env.RESEND_API_KEY,
     resendFromEmail: process.env.RESEND_FROM_EMAIL ?? "Taskflow <onboarding@resend.dev>",
   };
