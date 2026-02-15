@@ -41,12 +41,13 @@ export function TaskRemindersPanel({ overdueHref, summary }) {
       <ul className="grid gap-3 md:grid-cols-3">
         <li className="bg-muted/50 space-y-1 rounded-md border p-3">
           <p className="text-muted-foreground flex items-center gap-2 text-xs font-medium uppercase">
-            <TriangleAlert className="h-3.5 w-3.5" />
+            <TriangleAlert className="h-3.5 w-3.5" aria-hidden="true" />
             Overdue open
           </p>
           <p className="text-xl font-semibold">{summary.overdueOpenCount}</p>
           <Link
             href={overdueHref}
+            aria-label="Filter tasks to overdue"
             className={cn(
               "text-sm underline underline-offset-4",
               "focus-visible:ring-ring/50 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
@@ -58,7 +59,7 @@ export function TaskRemindersPanel({ overdueHref, summary }) {
 
         <li className="bg-muted/50 space-y-1 rounded-md border p-3">
           <p className="text-muted-foreground flex items-center gap-2 text-xs font-medium uppercase">
-            <ListChecks className="h-3.5 w-3.5" />
+            <ListChecks className="h-3.5 w-3.5" aria-hidden="true" />
             Due today (open)
           </p>
           <p className="text-xl font-semibold">{summary.dueTodayOpenCount}</p>
@@ -67,7 +68,7 @@ export function TaskRemindersPanel({ overdueHref, summary }) {
 
         <li className="bg-muted/50 space-y-1 rounded-md border p-3">
           <p className="text-muted-foreground flex items-center gap-2 text-xs font-medium uppercase">
-            <Clock3 className="h-3.5 w-3.5" />
+            <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
             Next upcoming
           </p>
           <p className="text-sm font-medium">{formatUpcomingDue(summary.nextUpcomingDueAt)}</p>

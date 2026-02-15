@@ -5,14 +5,18 @@ import { Button } from "@/components/ui/button";
  */
 export function EmptyState({ title, description, actionLabel, onAction }) {
   return (
-    <div className="bg-card text-card-foreground rounded-lg border border-dashed p-8 text-center">
+    <div
+      className="bg-card text-card-foreground rounded-lg border border-dashed p-8 text-center"
+      role="status"
+      aria-live="polite"
+    >
       <div className="mx-auto max-w-sm space-y-2">
         <h3 className="text-lg font-semibold">{title}</h3>
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
       {actionLabel && onAction ? (
         <div className="mt-4">
-          <Button onClick={onAction} variant="outline">
+          <Button onClick={onAction} variant="outline" aria-label={actionLabel}>
             {actionLabel}
           </Button>
         </div>

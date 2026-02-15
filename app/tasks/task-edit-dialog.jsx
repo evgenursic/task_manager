@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { updateTaskAction } from "@/app/tasks/actions";
@@ -132,7 +133,7 @@ export function TaskEditDialog({ task, open, onOpenChange, onCloseAutoFocus }) {
       }}
     >
       <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4" aria-busy={isSubmitting}>
           <DialogHeader>
             <DialogTitle>Edit task</DialogTitle>
             <DialogDescription>Update details and save your changes.</DialogDescription>
@@ -147,6 +148,7 @@ export function TaskEditDialog({ task, open, onOpenChange, onCloseAutoFocus }) {
                 id={`edit-title-${task.id}`}
                 placeholder="Prepare Monday planning notes"
                 aria-invalid={errors.title ? "true" : "false"}
+                aria-label="Task title"
                 {...register("title")}
               />
               {errors.title ? (
@@ -161,6 +163,7 @@ export function TaskEditDialog({ task, open, onOpenChange, onCloseAutoFocus }) {
               <textarea
                 id={`edit-notes-${task.id}`}
                 rows={3}
+                aria-label="Task notes"
                 placeholder="Optional context, links, or acceptance criteria."
                 className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring/50 w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2"
                 {...register("notes")}
@@ -172,7 +175,12 @@ export function TaskEditDialog({ task, open, onOpenChange, onCloseAutoFocus }) {
                 <label htmlFor={`edit-dueAt-${task.id}`} className="text-sm font-medium">
                   Due date and time
                 </label>
-                <Input id={`edit-dueAt-${task.id}`} type="datetime-local" {...register("dueAt")} />
+                <Input
+                  id={`edit-dueAt-${task.id}`}
+                  type="datetime-local"
+                  aria-label="Task due date and time"
+                  {...register("dueAt")}
+                />
                 {errors.dueAt ? (
                   <p className="text-sm text-red-600 dark:text-red-300">{errors.dueAt.message}</p>
                 ) : null}
@@ -184,6 +192,7 @@ export function TaskEditDialog({ task, open, onOpenChange, onCloseAutoFocus }) {
                 </label>
                 <select
                   id={`edit-priority-${task.id}`}
+                  aria-label="Task priority"
                   className="border-input bg-background focus-visible:ring-ring/50 h-9 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
                   {...register("priority")}
                 >
@@ -195,7 +204,7 @@ export function TaskEditDialog({ task, open, onOpenChange, onCloseAutoFocus }) {
             </div>
 
             {serverError ? (
-              <p role="alert" className="text-sm text-red-600 dark:text-red-300">
+              <p role="alert" aria-live="polite" className="text-sm text-red-600 dark:text-red-300">
                 {serverError}
               </p>
             ) : null}
@@ -205,13 +214,21 @@ export function TaskEditDialog({ task, open, onOpenChange, onCloseAutoFocus }) {
             <Button
               type="button"
               variant="outline"
+              aria-label="Cancel editing task"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save changes"}
+            <Button type="submit" disabled={isSubmitting} aria-label="Save changes">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Saving...
+                </>
+              ) : (
+                "Save changes"
+              )}
             </Button>
           </DialogFooter>
         </form>

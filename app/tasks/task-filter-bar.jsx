@@ -92,7 +92,7 @@ export function TaskFilterBar({ tab, query, sort }) {
         <Tabs value={tab} onValueChange={handleTabChange} className="gap-0">
           <TabsList aria-label="Task filter tabs">
             {FILTER_TABS.map((option) => (
-              <TabsTrigger key={option.value} value={option.value}>
+              <TabsTrigger key={option.value} value={option.value} aria-label={option.label}>
                 {option.label}
               </TabsTrigger>
             ))}
@@ -105,6 +105,7 @@ export function TaskFilterBar({ tab, query, sort }) {
           </label>
           <select
             id="task-sort"
+            aria-label="Sort tasks"
             value={sort}
             onChange={handleSortChange}
             className="border-input bg-background focus-visible:ring-ring/50 h-9 rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
@@ -118,24 +119,31 @@ export function TaskFilterBar({ tab, query, sort }) {
         </div>
       </div>
 
-      <form onSubmit={handleSearchSubmit} className="flex flex-col gap-2 sm:flex-row">
+      <form onSubmit={handleSearchSubmit} className="flex flex-col gap-2 sm:flex-row" role="search">
         <label htmlFor="task-query" className="sr-only">
           Search tasks
         </label>
         <Input
           id="task-query"
+          aria-label="Search tasks"
           value={queryInput}
           onChange={(event) => setQueryInput(event.target.value)}
           placeholder="Search title or notes..."
           className="sm:max-w-md"
         />
         <div className="flex items-center gap-2">
-          <Button type="submit" variant="secondary" className="gap-2">
-            <Search className="h-4 w-4" />
+          <Button type="submit" variant="secondary" className="gap-2" aria-label="Search">
+            <Search className="h-4 w-4" aria-hidden="true" />
             Search
           </Button>
-          <Button type="button" variant="ghost" className="gap-2" onClick={handleReset}>
-            <RotateCcw className="h-4 w-4" />
+          <Button
+            type="button"
+            variant="ghost"
+            className="gap-2"
+            aria-label="Reset filters"
+            onClick={handleReset}
+          >
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
             Reset
           </Button>
         </div>

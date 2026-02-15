@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { createTaskAction } from "@/app/tasks/actions";
@@ -97,14 +97,14 @@ export function TaskCreateDialog() {
       }}
     >
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
+        <Button size="sm" className="gap-2" aria-label="New task">
+          <Plus className="h-4 w-4" aria-hidden="true" />
           New task
         </Button>
       </DialogTrigger>
 
       <DialogContent>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4" aria-busy={isSubmitting}>
           <DialogHeader>
             <DialogTitle>Create task</DialogTitle>
             <DialogDescription>
@@ -121,6 +121,7 @@ export function TaskCreateDialog() {
                 id="task-title"
                 placeholder="Prepare Monday planning notes"
                 aria-invalid={errors.title ? "true" : "false"}
+                aria-label="Task title"
                 {...register("title")}
               />
               {errors.title ? (
@@ -139,6 +140,7 @@ export function TaskCreateDialog() {
               <textarea
                 id="task-notes"
                 rows={3}
+                aria-label="Task notes"
                 placeholder="Optional context, links, or acceptance criteria."
                 className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring/50 w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2"
                 {...register("notes")}
@@ -150,7 +152,12 @@ export function TaskCreateDialog() {
                 <label htmlFor="task-dueAt" className="text-sm font-medium">
                   Due date and time
                 </label>
-                <Input id="task-dueAt" type="datetime-local" {...register("dueAt")} />
+                <Input
+                  id="task-dueAt"
+                  type="datetime-local"
+                  aria-label="Task due date and time"
+                  {...register("dueAt")}
+                />
                 {errors.dueAt ? (
                   <p className="text-sm text-red-600 dark:text-red-300">{errors.dueAt.message}</p>
                 ) : (
@@ -166,6 +173,7 @@ export function TaskCreateDialog() {
                 </label>
                 <select
                   id="task-priority"
+                  aria-label="Task priority"
                   className="border-input bg-background focus-visible:ring-ring/50 h-9 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
                   {...register("priority")}
                 >
@@ -177,7 +185,7 @@ export function TaskCreateDialog() {
             </div>
 
             {serverError ? (
-              <p role="alert" className="text-sm text-red-600 dark:text-red-300">
+              <p role="alert" aria-live="polite" className="text-sm text-red-600 dark:text-red-300">
                 {serverError}
               </p>
             ) : null}
@@ -187,13 +195,21 @@ export function TaskCreateDialog() {
             <Button
               type="button"
               variant="outline"
+              aria-label="Cancel creating task"
               onClick={() => setOpen(false)}
               disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create task"}
+            <Button type="submit" disabled={isSubmitting} aria-label="Create task">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Creating...
+                </>
+              ) : (
+                "Create task"
+              )}
             </Button>
           </DialogFooter>
         </form>

@@ -205,6 +205,44 @@ function buildServiceFilters(tab, now) {
 }
 
 /**
+ * @param {"all" | "today" | "week" | "overdue" | "done"} tab
+ */
+function getListEmptyState(tab) {
+  if (tab === "done") {
+    return {
+      title: "No completed tasks yet",
+      description: "Mark tasks as done to build visible progress here.",
+    };
+  }
+
+  if (tab === "overdue") {
+    return {
+      title: "No overdue tasks",
+      description: "You're on track. Nothing is past its due time.",
+    };
+  }
+
+  if (tab === "today") {
+    return {
+      title: "No other tasks due today",
+      description: "Today's remaining schedule looks clear.",
+    };
+  }
+
+  if (tab === "week") {
+    return {
+      title: "No other tasks due this week",
+      description: "You are clear beyond the immediate due-soon items.",
+    };
+  }
+
+  return {
+    title: "No other tasks yet",
+    description: "Create your first task to get this list moving.",
+  };
+}
+
+/**
  * @param {{ task: Task; now: Date }} props
  */
 function TaskItem({ task, now }) {
@@ -295,8 +333,7 @@ export default async function TasksPage({ searchParams }) {
   const dueSoonTasks = tasks.filter((task) => isDueSoon(task, now));
   const listTasksItems = showDueSoonSection ? tasks.filter((task) => !isDueSoon(task, now)) : tasks;
   const allTasksHeading = tab === "done" ? "Done tasks" : "All tasks";
-  const allTasksEmptyDescription =
-    tab === "done" ? "No completed tasks match this filter." : "Everything else is clear for now.";
+  const listEmptyState = getListEmptyState(tab);
   const overdueTabHref = buildTasksHref({
     tab: "overdue",
     query,
@@ -321,8 +358,8 @@ export default async function TasksPage({ searchParams }) {
           </h2>
           {dueSoonTasks.length === 0 ? (
             <EmptyState
-              title="No tasks due soon"
-              description="No open tasks are due within the next 24 hours."
+              title="Nothing due in the next 24 hours"
+              description="Good buffer. Add a task or adjust filters if you expected something here."
             />
           ) : (
             <ul className="space-y-3" aria-label="Due soon tasks">
@@ -339,7 +376,7 @@ export default async function TasksPage({ searchParams }) {
           {allTasksHeading}
         </h2>
         {listTasksItems.length === 0 ? (
-          <EmptyState title="No matching tasks" description={allTasksEmptyDescription} />
+          <EmptyState title={listEmptyState.title} description={listEmptyState.description} />
         ) : (
           <ul className="space-y-3" aria-label="All tasks">
             {listTasksItems.map((task) => (
