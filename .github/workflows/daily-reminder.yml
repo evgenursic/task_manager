@@ -1,9 +1,7 @@
 name: Daily Reminder
 
 on:
-  schedule:
-    # 08:00 Europe/Ljubljana (handles CET/CEST via guard step below)
-    - cron: "0 6,7 * * *"
+  # Temporarily paused: no automatic daily runs.
   workflow_dispatch:
 
 jobs:
